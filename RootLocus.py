@@ -1,4 +1,5 @@
 import numpy as np
+from sympy import sympify, symbols
 
 def evaluate_function_direct(s, numerator_func, denominator_func):
     # Direct substitution into F(s)
@@ -20,12 +21,15 @@ def evaluate_function_vector(s, numerator_func, denominator_func):
 numerator_input = input("Enter the numerator as a function of s (e.g., '2 * s + 4'): ")
 denominator_input = input("Enter the denominator as a function of s (e.g., 's**2 + 3 * s + 6'): ")
 
-# Define the point s
-s = 7 + 9j
+# Define the variable
+s = symbols('s')
 
-# Create functions from user input
-numerator_func = eval(f"lambda s: {numerator_input}")
-denominator_func = eval(f"lambda s: {denominator_input}")
+# Create functions from user input with validation
+try:
+    numerator_func = sympify(numerator_input)
+    denominator_func = sympify(denominator_input)
+except Exception as e:
+    print(f"Error in input: {e}")
 
 # Evaluate using both methods
 result_direct = evaluate_function_direct(s, numerator_func, denominator_func)
