@@ -10,20 +10,46 @@ def plot_root_locus(numerator, denominator, xlim=(-10, 2), ylim=(-10, 10)):
     Parameters:
     numerator (list): The numerator coefficients of the transfer function.
     denominator (list): The denominator coefficients of the transfer function.
-    xlim (tuple): Limits for the x-axis of the plot.
-    ylim (tuple): Limits for the y-axis of the plot.
+    xlim (tuple): Limits for the x-axis of the plot (default: (-10, 2)).
+    ylim (tuple): Limits for the y-axis of the plot (default: (-10, 10)).
     """
     
-    # Create the transfer function
-    sys = ctrl.TransferFunction(numerator, denominator)
-
-    # Plot the root locus directly
+    # Error handling for transfer function creation
+    try:
+        # Create the transfer function
+        sys = ctrl.TransferFunction(numerator, denominator)
+    except Exception as e:
+        print(f"Error creating transfer function: {e}")
+        return
+    
+    # Error handling for empty or zero systems
+    if not numerator or not denominator:
+        print("Numerator or denominator cannot be empty.")
+        return
+    
+    if all(x == 0 for x in numerator):
+        print("Numerator cannot be all zeros.")
+        return
+    
+    if all(x == 0 for x in denominator):
+        print("Denominator cannot be all zeros.")
+        return
+    
+    # Plot the root locus
     plt.figure()
-    ctrl.root_locus(sys)
+    try:
+        ctrl.root_locus(sys)
+    except Exception as e:
+        print(f"Error plotting root locus: {e}")
+        return
 
     # Get poles and zeros without plotting
-    poles = ctrl.poles(sys)  # Use ctrl.poles() to get poles
-    zeros = ctrl.zeros(sys)  # Use ctrl.zeros() to get zeros
+    try:
+        poles = ctrl.poles(sys)
+        zeros = ctrl.zeros(sys)
+    except Exception as e:
+        print(f"Error retrieving poles and zeros: {e}")
+        return
 
     # Plot poles as 'x' and zeros as 'o'
     plt.scatter(poles.real, poles.imag, marker='x', color='red', s=100, label='Poles')
