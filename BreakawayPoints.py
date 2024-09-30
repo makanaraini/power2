@@ -3,58 +3,94 @@ import matplotlib.pyplot as plt
 import control as ctrl
 from sympy import sympify, Poly
 
-def plot_root_locus(numerator, denominator, xlim=(-10, 2), ylim=(-10, 10)):
+def calculate_breakaway_points(numerator, denominator):
     """
-    This function plots the root locus of a system, along with poles, zeros, 
-    asymptotes, and centroid.
-
+    Calculate breakaway and break-in points on the root locus.
+    
     Parameters:
     numerator (list): The numerator coefficients of the transfer function.
     denominator (list): The denominator coefficients of the transfer function.
-    xlim (tuple): Limits for the x-axis of the plot (default: (-10, 2)).
-    ylim (tuple): Limits for the y-axis of the plot (default: (-10, 10)).
+    
+    Returns:
+    breakaway_points (list): List of breakaway/break-in points.
     """
+    s = ctrl.TransferFunction(numerator, denominator).num[0]
+    P = np.poly1d(denominator)
+    dP = np.polyder(P)
+
+    # Finding the breakaway points
+    breakaway_points = []
+    for r in np.linspace(-10, 10, 1000):
+        if dP(r) != 0:  # Avoid division by zero
+            breakaway_points.append(r - P(r) / dP(r))
     
-    # Error handling for transfer function creation
-    try:
-        # Create the transfer function
-        sys = ctrl.TransferFunction(numerator, denominator)
-    except Exception as e:
-        print(f"Error creating transfer function: {e}")
-        return
+    return np.unique(np.array(breakaway_points))
+
+def calculate_jw_axis_crossovers(numerator, denominator):
+    """
+    Calculate the jω-axis crossover points.
     
-    # Error handling for empty or zero systems
-    if not numerator or not denominator:
-        print("Numerator or denominator cannot be empty.")
-        return
+    Parameters:
+    numerator (list): The numerator coefficients of the transfer function.
+    denominator (list): The denominator coefficients of the transfer function.
     
-    if all(x == 0 for x in numerator):
-        print("Numerator cannot be all zeros.")
-        return
+    Returns:
+    crossover_points (list): List of crossover points on the jω-axis.
+    """
+    sys = ctrl.TransferFunction(numerator, denominator)
+    # Generate a range of imaginary frequencies
+    imaginary_freqs = np.linspace(-10, 10, 1000) * 1j
+    responses = ctrl.forced_response(sys, T=imaginary_freqs)
+
+    crossover_points = []
+    for i, val in enumerate(responses[1]):
+        if np.isclose(val.imag, 0, atol=1e-5):
+            crossover_points.append(responses[1][i].real)
+
+    return crossover_points
+
+def plot_root_locus(numerator: list, denominator: list, angle_at_point: float = None, xlim: tuple = (-10, 2), ylim: tuple = (-10, 10)) -> None:
+    """
+    Plots the root locus of a system.
     
-    if all(x == 0 for x in denominator):
-        print("Denominator cannot be all zeros.")
-        return
+    Parameters:
+    - numerator: List of numerator coefficients.
+    - denominator: List of denominator coefficients.
+    - angle_at_point: Optional angle for the plot.
+    - xlim: Limits for the x-axis.
+    - ylim: Limits for the y-axis.
+    """
+    # Create the transfer function
+    sys = ctrl.TransferFunction(numerator, denominator)
     
-    # Plot the root locus
+    # Get poles and zeros
+    poles = ctrl.poles(sys)
+    zeros = ctrl.zeros(sys)
+
+    # Generate the root locus data
+    rlist, klist = ctrl.root_locus(sys, plot=False)  # Get data without plotting
+    
     plt.figure()
-    try:
-        ctrl.root_locus(sys)
-    except Exception as e:
-        print(f"Error plotting root locus: {e}")
-        return
+    plt.title('Root Locus with Characteristics')
+    plt.xlabel('Real Axis')
+    plt.ylabel('Imaginary Axis')
+    plt.axhline(0, color='black', lw=1)
+    plt.axvline(0, color='black', lw=1)
+    plt.grid(True)
 
-    # Get poles and zeros without plotting
-    try:
-        poles = ctrl.poles(sys)
-        zeros = ctrl.zeros(sys)
-    except Exception as e:
-        print(f"Error retrieving poles and zeros: {e}")
-        return
+    # Plot the root locus
+    for r in rlist:
+        plt.plot(r.real, r.imag, 'b')  # Plot the root locus curves
 
-    # Plot poles as 'x' and zeros as 'o'
+    # Plot poles and zeros
     plt.scatter(poles.real, poles.imag, marker='x', color='red', s=100, label='Poles')
     plt.scatter(zeros.real, zeros.imag, marker='o', color='blue', s=100, label='Zeros')
+
+    # Calculate and plot breakaway points and jω-axis crossover points (same as before)
+    breakaway_points = calculate_breakaway_points(numerator, denominator)
+    plt.scatter(breakaway_points, np.zeros_like(breakaway_points), marker='*', color='orange', s=100, label='Breakaway Points')
+    crossover_points = calculate_jw_axis_crossovers(numerator, denominator)
+    plt.scatter(crossover_points, np.zeros_like(crossover_points), marker='D', color='purple', s=100, label='jω Crossover Points')
 
     # Plot asymptotes and centroid
     n_poles = len(poles)
@@ -62,7 +98,7 @@ def plot_root_locus(numerator, denominator, xlim=(-10, 2), ylim=(-10, 10)):
     n_diff = n_poles - n_zeros
 
     if n_diff > 0:
-        # Asymptotes centroid (real part of poles minus zeros divided by the difference)
+        # Asymptotes centroid
         centroid = (sum(poles.real) - sum(zeros.real)) / n_diff
         angles = [(2*i + 1) * np.pi / n_diff for i in range(n_diff)]  # Asymptote angles
 
@@ -72,22 +108,10 @@ def plot_root_locus(numerator, denominator, xlim=(-10, 2), ylim=(-10, 10)):
 
         plt.scatter([centroid], [0], color='green', marker='P', s=100, label='Centroid')
 
-    # Highlight real axis segments
-    for real_pole in poles.real:
-        plt.axvline(real_pole, color='grey', linestyle='--', lw=0.7)
-
-    # Customize the plot
-    plt.title('Enhanced Root Locus of the System')
-    plt.xlabel('Real Axis')
-    plt.ylabel('Imaginary Axis')
-    plt.axhline(0, color='black', lw=1)  # Real axis line
-    plt.axvline(0, color='black', lw=1)  # Imaginary axis line
-    plt.grid(True)
+    # Display characteristics and finalize the plot
+    plt.xlim(xlim)
+    plt.ylim(ylim)
     plt.legend(loc='best')
-    plt.xlim(xlim)  # Adjust the x-axis limits based on function parameters
-    plt.ylim(ylim)  # Adjust the y-axis limits based on function parameters
-
-    # Show the plot
     plt.show()
 
 def get_user_input():
@@ -95,8 +119,7 @@ def get_user_input():
     Prompts the user to input numerator (zeros) and denominator (poles) coefficients in polynomial form.
     
     Returns:
-    numerator (list): List of numerator coefficients.
-    denominator (list): List of denominator coefficients.
+    tuple: A tuple containing the numerator (list) and denominator (list) coefficients.
     """
     try:
         # Get user input for the numerator
@@ -109,13 +132,18 @@ def get_user_input():
         denominator_poly = Poly(sympify(denominator_input)).all_coeffs()
         denominator = [float(coef) for coef in denominator_poly]
 
+        print(f"Numerator: {numerator}, Denominator: {denominator}")  # Debug print
         return numerator, denominator
     except Exception as e:
         print(f"Invalid input: {e}. Please enter valid polynomial expressions.")
-        return None, None
+        return [], []  # Return empty lists to prevent unpacking errors
 
 # Main program to get user input and plot the root locus
 numerator, denominator = get_user_input()
 
-if numerator and denominator:
-    plot_root_locus(numerator, denominator, xlim=(-10, 2), ylim=(-10, 10))
+if numerator and denominator:  # Check if lists are not empty
+    angle_input = input("Enter a point to calculate angle as a complex number (e.g., 2+1j) or press Enter to skip: ")
+    angle_at_point = complex(angle_input) if angle_input else None  # Use None if no input is provided
+    plot_root_locus(numerator, denominator, angle_at_point, xlim=(-10, 2), ylim=(-10, 10))
+else:
+    print("Failed to get valid numerator and denominator.")
