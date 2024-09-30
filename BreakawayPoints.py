@@ -3,28 +3,24 @@ import matplotlib.pyplot as plt
 import control as ctrl
 
 # Define the transfer function
-# Example: G(s) = K / (s^2 + 5s + 6), where K is the gain
 numerator = [1]  # Numerator (K, which will vary)
 denominator = [1, 5, 6]  # Denominator (s^2 + 5s + 6)
 
 # Create the transfer function
 sys = ctrl.TransferFunction(numerator, denominator)
 
-# Plot the root locus
+# Plot the root locus directly
 plt.figure()
-rlist, klist = ctrl.root_locus(sys, Plot=True)
+ctrl.root_locus(sys)
 
-# Add labels for poles and zeros
-poles, zeros = ctrl.pzmap(sys, Plot=False)  # Get poles and zeros without plotting
+# Get poles and zeros without plotting
+poles = ctrl.poles(sys)  # Use ctrl.pole() to get poles
+zeros = ctrl.zeros(sys)  # Use ctrl.zero() to get zeros
 
 # Plot poles as 'x' and zeros as 'o'
 plt.scatter(poles.real, poles.imag, marker='x', color='red', s=100, label='Poles')
 plt.scatter(zeros.real, zeros.imag, marker='o', color='blue', s=100, label='Zeros')
 
-# Annotate the gain values at some key points
-for i in range(0, len(klist), len(klist)//10):  # Sample points to annotate
-    plt.text(rlist[i, 0].real, rlist[i, 0].imag, f'K={klist[i]:.2f}', fontsize=9)
-    
 # Plot asymptotes and centroid
 n_poles = len(poles)
 n_zeros = len(zeros)
