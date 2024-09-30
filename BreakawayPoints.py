@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import control as ctrl
+from sympy import sympify, Poly
 
 def plot_root_locus(numerator, denominator, xlim=(-10, 2), ylim=(-10, 10)):
     """
@@ -91,7 +92,7 @@ def plot_root_locus(numerator, denominator, xlim=(-10, 2), ylim=(-10, 10)):
 
 def get_user_input():
     """
-    Prompts the user to input numerator (zeros) and denominator (poles) coefficients.
+    Prompts the user to input numerator (zeros) and denominator (poles) coefficients in polynomial form.
     
     Returns:
     numerator (list): List of numerator coefficients.
@@ -99,16 +100,18 @@ def get_user_input():
     """
     try:
         # Get user input for the numerator
-        numerator_input = input("Enter the numerator coefficients (separated by spaces): ")
-        numerator = [float(num) for num in numerator_input.split()]
-        
+        numerator_input = input("Enter the numerator (e.g., s+2): ")
+        numerator_poly = Poly(sympify(numerator_input)).all_coeffs()
+        numerator = [float(coef) for coef in numerator_poly]
+
         # Get user input for the denominator
-        denominator_input = input("Enter the denominator coefficients (separated by spaces): ")
-        denominator = [float(den) for den in denominator_input.split()]
-        
+        denominator_input = input("Enter the denominator (e.g., s**2 - 4*s + 13): ")
+        denominator_poly = Poly(sympify(denominator_input)).all_coeffs()
+        denominator = [float(coef) for coef in denominator_poly]
+
         return numerator, denominator
-    except ValueError:
-        print("Invalid input. Please enter numeric values for the coefficients.")
+    except Exception as e:
+        print(f"Invalid input: {e}. Please enter valid polynomial expressions.")
         return None, None
 
 # Main program to get user input and plot the root locus
