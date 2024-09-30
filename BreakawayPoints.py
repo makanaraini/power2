@@ -89,8 +89,30 @@ def plot_root_locus(numerator, denominator, xlim=(-10, 2), ylim=(-10, 10)):
     # Show the plot
     plt.show()
 
+def get_user_input():
+    """
+    Prompts the user to input numerator (zeros) and denominator (poles) coefficients.
+    
+    Returns:
+    numerator (list): List of numerator coefficients.
+    denominator (list): List of denominator coefficients.
+    """
+    try:
+        # Get user input for the numerator
+        numerator_input = input("Enter the numerator coefficients (separated by spaces): ")
+        numerator = [float(num) for num in numerator_input.split()]
+        
+        # Get user input for the denominator
+        denominator_input = input("Enter the denominator coefficients (separated by spaces): ")
+        denominator = [float(den) for den in denominator_input.split()]
+        
+        return numerator, denominator
+    except ValueError:
+        print("Invalid input. Please enter numeric values for the coefficients.")
+        return None, None
 
-# Example usage:
-numerator = [1]  # Numerator (K, which will vary)
-denominator = [1, 5, 6]  # Denominator (s^2 + 5s + 6)
-plot_root_locus(numerator, denominator, xlim=(-10, 2), ylim=(-10, 10))
+# Main program to get user input and plot the root locus
+numerator, denominator = get_user_input()
+
+if numerator and denominator:
+    plot_root_locus(numerator, denominator, xlim=(-10, 2), ylim=(-10, 10))
